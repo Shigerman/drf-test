@@ -13,6 +13,8 @@ urlpatterns = [
     path('', include(router.urls)),
     path('register/', views.register),
     path('login/', views.login),
+    path('send/', views.send),
+    path('get/', views.get),
     path('api-auth/', include('rest_framework.urls',
         namespace='rest_framework'))
 ]
