@@ -34,14 +34,16 @@ def register(request):
     password = request.data.get("password")
 
     if None in (username, password):
-        return Response({"error": "username & password required"}, status=400)
+        return Response({"error": "need username, password"}, status=400)
     if 0 in list(map(len, [username, password])):
-        return Response({"error": "username & password len > 0"}, status=400)
+        return Response({"error": "username, password len > 0"}, status=400)
 
+    if User.objects.filter(username=username).first():
+        return Response({"error": "username already used"}, status=400)
     email = None
     user = User.objects.create_user(username, email, password) # type: ignore
     if not user:
-        return Response({"error": "already exists"}, status=400)
+        return Response({"error": "can't create"}, status=400)
     return Response({"success": "user created"}, status=201)
 
 
@@ -53,9 +55,9 @@ def login(request):
     password = request.data.get("password")
 
     if None in (username, password):
-        return Response({"error": "username & password required"}, status=400)
+        return Response({"error": "need username, password"}, status=400)
     if 0 in list(map(len, [username, password])):
-        return Response({"error": "username & password len > 0"}, status=400)
+        return Response({"error": "username, password len > 0"}, status=400)
 
     user = django_authenticate(username=username, password=password)
     if not user:
@@ -66,6 +68,19 @@ def login(request):
 
 
 @api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated,])
+@parser_classes([JSONParser])
+def new_item(request):
+    name = request.data.get("name")
+    if not name or len(name) == 0:
+        return Response({"error": "need name"}, status=400)
+    # Assume we can have many items with same name
+    item = Item.objects.create(name=name, user=request.user)
+    return Response({"item_id": item.id}, status=201)
+
+
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
 def send(request):
     item_to_send_id = request.data.get("item_id")
@@ -94,6 +109,7 @@ def send(request):
 
 
 @api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
 def get(request):
 
@@ -129,3 +145,12 @@ def get(request):
             offer.save()
 
         return Response({"success": "trade offer was accepted"}, status=200)
+
+
+@api_view(['GET'])
+@permission_classes([permissions.IsAuthenticated,])
+@parser_classes([JSONParser])
+def items(request):
+    """ get items of the logged-in user """
+    items = Item.objects.filter(user=request.user)
+    return Response({"items": [ItemSerializer(v).data for v in items]})
