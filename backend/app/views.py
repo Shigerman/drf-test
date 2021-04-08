@@ -1,3 +1,4 @@
+from __future__ import annotations
 from django.contrib.auth import authenticate as django_authenticate
 from django.contrib.auth.models import User
 from django.db import transaction
@@ -30,8 +31,8 @@ class ItemViewSet(viewsets.ModelViewSet):
 @permission_classes((permissions.AllowAny,))
 @parser_classes([JSONParser])
 def register(request):
-    username = request.data.get("username")
-    password = request.data.get("password")
+    username: str = request.data.get("username")
+    password: str = request.data.get("password")
 
     if None in (username, password):
         return Response({"error": "need username, password"}, status=400)
@@ -41,7 +42,8 @@ def register(request):
     if User.objects.filter(username=username).first():
         return Response({"error": "username already used"}, status=400)
     email = None
-    user = User.objects.create_user(username, email, password) # type: ignore
+    user: User = User.objects.create_user( # type: ignore
+        username, email, password)
     if not user:
         return Response({"error": "can't create"}, status=400)
     return Response({"success": "user created"}, status=201)
@@ -51,8 +53,8 @@ def register(request):
 @permission_classes((permissions.AllowAny,))
 @parser_classes([JSONParser])
 def login(request):
-    username = request.data.get("username")
-    password = request.data.get("password")
+    username: str = request.data.get("username")
+    password: str = request.data.get("password")
 
     if None in (username, password):
         return Response({"error": "need username, password"}, status=400)
@@ -64,6 +66,7 @@ def login(request):
         return Response({"error": "auth error"}, status=400)
 
     # the method returns a tuple, and we do not need the second element
+    token: Token
     token, _ = Token.objects.get_or_create(user=user)
     return Response({"token": token.key}, status=200)
 
@@ -72,13 +75,13 @@ def login(request):
 @permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
 def new_item(request):
-    name = request.data.get("name")
+    name: str = request.data.get("name")
     if not name or len(name) == 0:
         return Response({"error": "need name"}, status=400)
 
     # Assume we can have many items with same name
-    item = Item.objects.create(name=name, user=request.user)
-    return Response({"item_id": item.id}, status=201)
+    item: Item = Item.objects.create(name=name, user=request.user)
+    return Response({"item_id": item.id}, status=201) # type: ignore
 
 
 @api_view(['POST'])
@@ -87,8 +90,8 @@ def new_item(request):
 def send(request):
     """ a user can offer an item to another user """
 
-    item_to_send_id = request.data.get("item_id")
-    receiver_name = request.data.get("username")
+    item_to_send_id: int = request.data.get("item_id")
+    receiver_name: str = request.data.get("username")
 
     if None in (item_to_send_id, receiver_name):
         return Response({"error": "item_id & username required"}, status=400)
@@ -96,15 +99,16 @@ def send(request):
     # Allow more than one /send via transaction records
     with transaction.atomic():
 
-        item_to_send = Item.objects.get(id=item_to_send_id)
+        item_to_send: Item = Item.objects.get(id=item_to_send_id)
         if not item_to_send:
             return Response({"error": "no such item"}, status=404)
 
-        receiver = User.objects.filter(username=receiver_name).first()
+        receiver: User | None = User.objects.filter(
+            username=receiver_name).first()
         if not receiver:
             return Response({"error": "receiver not found"}, status=404)
 
-        trade_offer = TradeOffer.objects.create(
+        trade_offer: TradeOffer = TradeOffer.objects.create(
             sender=request.user,
             receiver=receiver,
             item=item_to_send,
@@ -119,16 +123,16 @@ def send(request):
 def get(request):
     """ a user can receive an item from another user """
 
-    offer_code = request.data.get("offer_code")
+    offer_code: str = request.data.get("offer_code")
     if not offer_code:
         return Response({"error": "offer_code required"}, status=400)
 
-    receiver = request.user
+    receiver: User = request.user
 
     # inside transaction so that other transactions do not interfere
     with transaction.atomic():
         # find the trade offer to execute by the offer code (guid)
-        trade_offer = TradeOffer.objects.filter(
+        trade_offer: TradeOffer | None = TradeOffer.objects.filter(
             offer_code=offer_code,
             receiver=receiver,
             status=TradeOffer.STATUS_PENDING).first()
