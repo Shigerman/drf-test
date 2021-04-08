@@ -13,7 +13,7 @@ class Item(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.name} IS OWNED BY {self.user.username}"
+        return f"{self.id}: {self.name} IS OWNED BY {self.user.username}"
 
 
 class TradeOffer(models.Model):
@@ -45,5 +45,5 @@ class TradeOffer(models.Model):
     offer_code = models.TextField(default=make_uuid_str)
 
     def __str__(self):
-        return f"{self.sender.username} IS SENDING {self.item.name} TO \
-            {self.receiver.username}"
+        return f"{self.id}: {self.sender.username} IS SENDING \
+            {self.item.name} TO {self.receiver.username}"
