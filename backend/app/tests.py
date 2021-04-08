@@ -2,7 +2,7 @@ from rest_framework.test import APITestCase
 from rest_framework import status
 from icecream import ic
 from backend.app.serializers import UserSerializer, ItemSerializer
-
+from backend.app.models import Item
 
 class RestTests(APITestCase):
 
@@ -58,6 +58,23 @@ class RestTests(APITestCase):
 
         # Assert
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+    
+
+    def test_user_can_delete_an_item(self):
+        # Arrange
+        self._create_user()
+        token = self._login_user().data.get("token") # type: ignore
+        item_name = "coffee"
+        self._create_item(user_token=token, item_name=item_name)
+        item = Item.objects.get(name=item_name)
+        self.assertEqual(item.name, item_name)
+
+        # Act
+        response = self.client.delete(f'/items/{item.id}/')
+
+        # Assert
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Item.objects.filter(name=item_name).first(), None)
 
 
     def test_user_can_send_item_to_another_user(self):
