@@ -10,7 +10,7 @@ from rest_framework.decorators import (
     permission_classes,
     parser_classes
 )
-from backend.app.serializers import UserSerializer, ItemSerializer
+from backend.app.serializers import ItemSerializer, UserSerializer
 from backend.app.models import Item, TradeOffer
 
 
@@ -62,6 +62,7 @@ def login(request):
     user = django_authenticate(username=username, password=password)
     if not user:
         return Response({"error": "auth error"}, status=400)
+
     # the method returns a tuple, and we do not need the second element
     token, _ = Token.objects.get_or_create(user=user)
     return Response({"token": token.key}, status=200)
@@ -74,6 +75,7 @@ def new_item(request):
     name = request.data.get("name")
     if not name or len(name) == 0:
         return Response({"error": "need name"}, status=400)
+
     # Assume we can have many items with same name
     item = Item.objects.create(name=name, user=request.user)
     return Response({"item_id": item.id}, status=201)
@@ -83,8 +85,11 @@ def new_item(request):
 @permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
 def send(request):
+    """ a user can offer an item to another user """
+
     item_to_send_id = request.data.get("item_id")
     receiver_name = request.data.get("username")
+
     if None in (item_to_send_id, receiver_name):
         return Response({"error": "item_id & username required"}, status=400)
 
@@ -112,10 +117,12 @@ def send(request):
 @permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
 def get(request):
+    """ a user can receive an item from another user """
 
     offer_code = request.data.get("offer_code")
     if not offer_code:
         return Response({"error": "offer_code required"}, status=400)
+
     receiver = request.user
 
     # inside transaction so that other transactions do not interfere
@@ -140,6 +147,7 @@ def get(request):
             sender=trade_offer.sender,
             item=trade_offer.item,
             status=TradeOffer.STATUS_PENDING)
+
         for offer in all_offers:
             offer.status = TradeOffer.STATUS_EXPIRED
             offer.save()
