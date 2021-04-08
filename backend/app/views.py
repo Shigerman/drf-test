@@ -30,7 +30,7 @@ class ItemViewSet(viewsets.ModelViewSet):
 @api_view(['POST'])
 @permission_classes((permissions.AllowAny,))
 @parser_classes([JSONParser])
-def register(request):
+def register_user(request):
     username: str = request.data.get("username")
     password: str = request.data.get("password")
 
@@ -74,7 +74,7 @@ def login(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
-def new_item(request):
+def create_item(request):
     name: str = request.data.get("name")
     if not name or len(name) == 0:
         return Response({"error": "need name"}, status=400)
@@ -87,7 +87,7 @@ def new_item(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
-def send(request):
+def send_item_to_user(request):
     """ a user can offer an item to another user """
 
     item_to_send_id: int = request.data.get("item_id")
@@ -120,7 +120,7 @@ def send(request):
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
-def get(request):
+def get_item_from_user(request):
     """ a user can receive an item from another user """
 
     offer_code: str = request.data.get("offer_code")
@@ -162,7 +162,7 @@ def get(request):
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
-def items(request):
+def get_item_list_for_user(request):
     """ get items of the logged-in user """
     items = Item.objects.filter(user=request.user)
     return Response({"items": [ItemSerializer(v).data for v in items]})

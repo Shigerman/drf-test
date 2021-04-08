@@ -8,7 +8,7 @@ class RestTests(APITestCase):
 
     def _create_user(self, username="foo", password="foo"):
         data = {'username': username, 'password': password}
-        return self.client.post('/register/', data)
+        return self.client.post('/registration/', data)
 
 
     def _login_user(self, username="foo", password="foo"):
@@ -109,4 +109,5 @@ class RestTests(APITestCase):
 
         # Assert
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data["items"]), item_count)
+        self.assertEqual(len(response.data["items"]), # type: ignore
+            item_count)
