@@ -41,11 +41,10 @@ def register_user(request):
 
     if User.objects.filter(username=username).first():
         return Response({"error": "username already used"}, status=400)
-    email = None
     user: User = User.objects.create_user( # type: ignore
-        username, email, password)
+        username, email := None, password)
     if not user:
-        return Response({"error": "can't create"}, status=400)
+        return Response({"error": "can't create"}, status=500)
     return Response({"success": "user created"}, status=201)
 
 
@@ -68,7 +67,7 @@ def login(request):
     # the method returns a tuple, and we do not need the second element
     token: Token
     token, _ = Token.objects.get_or_create(user=user)
-    return Response({"token": token.key}, status=200)
+    return Response({"token": token.key})
 
 
 @api_view(['POST'])
@@ -156,13 +155,13 @@ def get_item_from_user(request):
             offer.status = TradeOffer.STATUS_EXPIRED
             offer.save()
 
-        return Response({"success": "trade offer was accepted"}, status=200)
+        return Response({"success": "trade offer was accepted"})
 
 
 @api_view(['GET'])
 @permission_classes([permissions.IsAuthenticated,])
 @parser_classes([JSONParser])
 def get_item_list_for_user(request):
-    """ get items of the logged-in user """
+    """ get all items of the logged-in user """
     items = Item.objects.filter(user=request.user)
     return Response({"items": [ItemSerializer(v).data for v in items]})
